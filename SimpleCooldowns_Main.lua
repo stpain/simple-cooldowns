@@ -311,14 +311,14 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
             GameTooltip:SetOwner(self, 'ANCHOR_CURSOR')
             GameTooltip:AddLine(addonName)
             GameTooltip:AddDoubleLine(SC.Locales['panel'], tostring('|cffffffff'..name))
-            GameTooltip:AddLine(SC.Locales['panelmenutip'])
             if self.SpellName then
                 GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..self.SpellName))
             elseif self.ItemName then
                 GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..self.ItemName))
             else
-                GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..'Empty'))
+                GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..'drag an item or spell here to set cooldown'))
             end
+            GameTooltip:AddLine(SC.Locales['panelmenutip'])
             GameTooltip:Show()
         end)
         s:SetScript('OnMouseUp', function(self, button)
