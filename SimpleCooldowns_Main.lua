@@ -112,7 +112,7 @@ SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetThumbTexture("Inter
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetSize(100, 16)
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetOrientation('HORIZONTAL')
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetMinMaxValues(1, 10) 
-SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetValueStep(1)
+SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetValueStep(1.0)
 _G[SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:GetName()..'Low']:SetText('')
 _G[SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:GetName()..'High']:SetText('')
 
@@ -123,7 +123,7 @@ SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.text:SetFont("Fonts\\FRIZQT__
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetValue(4)
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.text:SetText(string.format("%.0f", SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:GetValue()))
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:SetScript('OnValueChanged', function(self)
-    SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.text:SetText(string.format("%.0f", self:GetValue()))
+    SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.text:SetText(string.format("%.0f", math.ceil(self:GetValue())))
 end)
 
 SC.ContextMenu_CustomFrame_NewPanel_Editbox = CreateFrame('FRAME', 'SCContextMenuCustomFrameNewPanelEditbox', UIParent, 'UIDropDownCustomMenuEntryTemplate')
@@ -158,6 +158,49 @@ SC.ContextMenu_CustomFrame_NewPanel_IconSize_Slider.slider:SetScript('OnValueCha
     SC.ContextMenu_CustomFrame_NewPanel_IconSize_Slider.text:SetText(string.format("%.0f", self:GetValue()))
 end)
 
+
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider = CreateFrame('FRAME', 'SCContextMenuCustomFrameEditPanel_IconSize_Slider', UIParent, 'UIDropDownCustomMenuEntryTemplate')
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider:SetSize(125, 16)
+
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider = CreateFrame('SLIDER', 'SCContextMenuCustomFrameEditPanel_IconSize_Slider_Slider', SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, 'OptionsSliderTemplate')
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetPoint('LEFT', 0, 0)
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetThumbTexture("Interface/Buttons/UI-SliderBar-Button-Horizontal")
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetSize(100, 16)
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetOrientation('HORIZONTAL')
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetMinMaxValues(20, 80) 
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetValueStep(1)
+_G[SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:GetName()..'Low']:SetText('')
+_G[SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:GetName()..'High']:SetText('')
+
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text = SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider:CreateFontString('SCContextMenuCustomFrameEditPanel_IconSize_Slider_Text', 'OVERLAY', 'GameFontNormal')
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetPoint('LEFT', SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider, 'RIGHT', 10, 0)
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetFont("Fonts\\FRIZQT__.TTF", 10)
+
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetValue(40)
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetText(string.format("%.0f", SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:GetValue()))
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnValueChanged', function(self)
+    SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetText(string.format("%.0f", self:GetValue()))
+    if SC_CHARACTER and SC_CHARACTER.Panels then
+
+        local dropDownListID = self:GetParent():GetParent()['parentLevel']
+        local buttonID = self:GetParent():GetParent()['parentID']
+
+        local panel = _G['DropDownList'..dropDownListID..'Button'..buttonID].arg1
+
+        for k, socket in ipairs(panel.Sockets) do
+            socket:SetSize(self:GetValue(), self:GetValue())
+            socket:SetPoint('BOTTOMLEFT', ((k-1)*self:GetValue()), 0)
+        end
+        panel:SetSize((#panel.Sockets * self:GetValue()), self:GetValue() + 10)
+
+        if SC_CHARACTER.Panels[panel.Name] then
+            SC_CHARACTER.Panels[panel.Name].Width = (#panel.Sockets * self:GetValue())
+            SC_CHARACTER.Panels[panel.Name].Height = self:GetValue() + 10
+        end
+    end
+
+end)
+
 function SC.GenerateMinimapContextMenu()
     local newPanel = {
         { text = 'Create panel', isTitle=true, notCheckable=true, },
@@ -171,18 +214,24 @@ function SC.GenerateMinimapContextMenu()
         { text = ' ', notCheckable=true, notClickable=true, },
         { text = 'Create panel', notCheckable=true, func=SC.ContextMenu_CreatePanel },
     }
-    local panelsList = {}
+    local editPanel = {
+        { text='Select panel', isTitle=true, notCheckable=true, }
+    }
     if next(SC.Panels) then
         for k, panel in pairs(SC.Panels) do
-            table.insert(panelsList, {
+            table.insert(editPanel, {
                 text = k,
                 arg1 = panel,
+                arg2 = panel.Name,
                 hasArrow=true,
                 notCheckable=true,
                 menuList = {
+                    { text = panel.Name, isTitle=true, notCheckable=true, },
                     { text = 'Show', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) self.arg1:Show() end, },
                     { text = 'Hide', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) self.arg1:Hide() end, },
-                    { text = 'Delete', arg1=panel, notCheckable=true, func=function(self) self.arg1:Hide() SC.Panels[k] = nil SC_CHARACTER.Panels[k] = nil end, }
+                    { text = 'Delete', arg1=panel, notCheckable=true, func=function(self) self.arg1:Hide() SC.Panels[k] = nil SC_CHARACTER.Panels[k] = nil end, },
+                    { text = 'Socket size', isTitle=true, notClickable=true, notCheckable=true, },
+                    { text = ' ', arg1=panel, arg2 = panel.Name, notCheckable=true, customFrame=SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, },
                 }
             })
         end
@@ -193,12 +242,12 @@ function SC.GenerateMinimapContextMenu()
         { text = SC.ContextMenu_Separator, notCheckable=true, },
         { text = 'Panel Options', isTitle=true, notCheckable=true, },
         { text = 'New panel', notCheckable=true, hasArrow=true, menuList=newPanel },
-        { text = 'Panels', hasArrow=true, notCheckable=true, menuList=panelsList },
+        { text = 'Panels', hasArrow=true, notCheckable=true, menuList=editPanel },
     }
 end
 
 function SC.ContextMenu_CreatePanel()
-    local numSockets = SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:GetValue()
+    local numSockets = math.ceil(SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider.slider:GetValue())
     local sockets = {}
     for i = 1, numSockets do
         table.insert(sockets, {
@@ -236,16 +285,16 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
     --     return
     -- end
     if spellId ~= nil then
-        socket.ItemId = nil
-        socket.ItemName = nil
+        --socket.ItemId = nil
+        --socket.ItemName = nil
         spellId = tonumber(spellId)
-        socket.SpellID = spellId
+        --socket.SpellID = spellId
         local spelltexture = select(1, GetSpellTexture(spellId))
         spelltexture = tonumber(spelltexture)
-        socket.Texture:SetTexture(spelltexture)
+        --socket.Texture:SetTexture(spelltexture)
         local spellname = select(1, GetSpellInfo(spellId))
         spellname = tostring(spellname)
-        socket.SpellName = spellname
+        --socket.SpellName = spellname
         for k, s in ipairs(SC_CHARACTER.Panels[panel.Name].Sockets) do
             if s.Id == socket.Id then
                 s.Texture = spelltexture
@@ -255,21 +304,41 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
                 s.ItemName = nil
             end
         end
+        for k, s in ipairs(SC.Panels[panel.Name].Sockets) do
+            if s.Id == socket.Id then
+                --s.Texture = spelltexture
+                s.Texture:SetTexture(spelltexture)
+                s.SpellId = spellId
+                s.SpellName = spellname
+                s.ItemId = nil
+                s.ItemName = nil
+            end
+        end
         print('updating spell data for socket:', socket.Id, spellname)
     elseif itemId ~= nil then
-        socket.SpellId = nil
-        socket.SpellName = nil
+        -- socket.SpellId = nil
+        -- socket.SpellName = nil
         itemId = tonumber(itemId)
-        socket.ItemId = itemId
+        --socket.ItemId = itemId
         local itemname = select(1, GetItemInfo(itemId))
         itemname = tostring(itemname)
-        socket.ItemName = itemname
+        --socket.ItemName = itemname
         local itemtexture = select(10, GetItemInfo(itemId))
         itemtexture = tonumber(itemtexture)
-        socket.Texture:SetTexture(itemtexture)
+        --socket.Texture:SetTexture(itemtexture)
         for k, s in ipairs(SC_CHARACTER.Panels[panel.Name].Sockets) do
             if s.Id == socket.Id then
                 s.Texture = itemtexture
+                s.ItemId = itemId
+                s.ItemName = itemname
+                s.SpellId = nil
+                s.SpellName = nil
+            end
+        end
+        for k, s in ipairs(SC.Panels[panel.Name].Sockets) do
+            if s.Id == socket.Id then
+                --s.Texture = itemtexture
+                s.Texture:SetTexture(itemtexture)
                 s.ItemId = itemId
                 s.ItemName = itemname
                 s.SpellId = nil
@@ -311,13 +380,16 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
             GameTooltip:SetOwner(self, 'ANCHOR_CURSOR')
             GameTooltip:AddLine(addonName)
             GameTooltip:AddDoubleLine(SC.Locales['panel'], tostring('|cffffffff'..name))
-            if self.SpellName then
-                GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..self.SpellName))
-            elseif self.ItemName then
-                GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..self.ItemName))
+            if self.SpellId then
+                --GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..self.SpellName))
+                GameTooltip:SetHyperlink('spell:'..self.SpellId)
+            elseif self.ItemId then
+                --GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..self.ItemName))
+                GameTooltip:SetHyperlink('item:'..self.ItemId)
             else
                 GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..'drag an item or spell here to set cooldown'))
             end
+            GameTooltip:AddLine(' ')
             GameTooltip:AddLine(SC.Locales['panelmenutip'])
             GameTooltip:Show()
         end)
