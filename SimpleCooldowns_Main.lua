@@ -178,27 +178,40 @@ SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetFont("Fonts\\FRIZQT
 
 SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetValue(40)
 SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetText(string.format("%.0f", SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:GetValue()))
-SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnValueChanged', function(self)
-    SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetText(string.format("%.0f", self:GetValue()))
-    if SC_CHARACTER and SC_CHARACTER.Panels then
 
+
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnShow', function(self)
+    if SC_CHARACTER and SC_CHARACTER.Panels then
         local dropDownListID = self:GetParent():GetParent()['parentLevel']
         local buttonID = self:GetParent():GetParent()['parentID']
-
-        local panel = _G['DropDownList'..dropDownListID..'Button'..buttonID].arg1
-
-        for k, socket in ipairs(panel.Sockets) do
-            socket:SetSize(self:GetValue(), self:GetValue())
-            socket:SetPoint('BOTTOMLEFT', ((k-1)*self:GetValue()), 0)
-        end
-        panel:SetSize((#panel.Sockets * self:GetValue()), self:GetValue() + 10)
-
-        if SC_CHARACTER.Panels[panel.Name] then
-            SC_CHARACTER.Panels[panel.Name].Width = (#panel.Sockets * self:GetValue())
-            SC_CHARACTER.Panels[panel.Name].Height = self:GetValue() + 10
+        if dropDownListID and buttonID then
+            local panel = _G['DropDownList'..dropDownListID..'Button'..buttonID].arg1
+            if panel and panel.Name then
+                self:SetValue(tonumber(SC_CHARACTER.Panels[panel.Name].Height))
+            end
         end
     end
+end)
 
+
+SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnValueChanged', function(self)
+    if SC_CHARACTER and SC_CHARACTER.Panels then
+        SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.text:SetText(string.format("%.0f", self:GetValue()))
+        local dropDownListID = self:GetParent():GetParent()['parentLevel']
+        local buttonID = self:GetParent():GetParent()['parentID']
+        local panel = _G['DropDownList'..dropDownListID..'Button'..buttonID].arg1
+        if panel then
+            for k, socket in ipairs(panel.Sockets) do
+                socket:SetSize(self:GetValue(), self:GetValue())
+                socket:SetPoint('BOTTOMLEFT', ((k-1)*self:GetValue()), 0)
+            end
+            panel:SetSize((#panel.Sockets * self:GetValue()), self:GetValue() + 10)
+            if SC_CHARACTER.Panels[panel.Name] then
+                SC_CHARACTER.Panels[panel.Name].Width = (#panel.Sockets * self:GetValue())
+                SC_CHARACTER.Panels[panel.Name].Height = self:GetValue() -- + 10
+            end
+        end
+    end
 end)
 
 function SC.GenerateMinimapContextMenu()
@@ -280,21 +293,12 @@ end
 
 --currently updating UI and then writing data to saved var, consider writing data and making a refresh func
 function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items also diff id's? - could merge into 1?
-    -- if socket.Cooldown:GetCooldownDuration() > 0 then
-    --     SC.Print('unable to update socket while cooldown is active')
-    --     return
-    -- end
     if spellId ~= nil then
-        --socket.ItemId = nil
-        --socket.ItemName = nil
         spellId = tonumber(spellId)
-        --socket.SpellID = spellId
         local spelltexture = select(1, GetSpellTexture(spellId))
         spelltexture = tonumber(spelltexture)
-        --socket.Texture:SetTexture(spelltexture)
         local spellname = select(1, GetSpellInfo(spellId))
         spellname = tostring(spellname)
-        --socket.SpellName = spellname
         for k, s in ipairs(SC_CHARACTER.Panels[panel.Name].Sockets) do
             if s.Id == socket.Id then
                 s.Texture = spelltexture
@@ -306,7 +310,6 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
         end
         for k, s in ipairs(SC.Panels[panel.Name].Sockets) do
             if s.Id == socket.Id then
-                --s.Texture = spelltexture
                 s.Texture:SetTexture(spelltexture)
                 s.SpellId = spellId
                 s.SpellName = spellname
@@ -314,18 +317,12 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
                 s.ItemName = nil
             end
         end
-        print('updating spell data for socket:', socket.Id, spellname)
     elseif itemId ~= nil then
-        -- socket.SpellId = nil
-        -- socket.SpellName = nil
         itemId = tonumber(itemId)
-        --socket.ItemId = itemId
         local itemname = select(1, GetItemInfo(itemId))
         itemname = tostring(itemname)
-        --socket.ItemName = itemname
         local itemtexture = select(10, GetItemInfo(itemId))
         itemtexture = tonumber(itemtexture)
-        --socket.Texture:SetTexture(itemtexture)
         for k, s in ipairs(SC_CHARACTER.Panels[panel.Name].Sockets) do
             if s.Id == socket.Id then
                 s.Texture = itemtexture
@@ -337,7 +334,6 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
         end
         for k, s in ipairs(SC.Panels[panel.Name].Sockets) do
             if s.Id == socket.Id then
-                --s.Texture = itemtexture
                 s.Texture:SetTexture(itemtexture)
                 s.ItemId = itemId
                 s.ItemName = itemname
@@ -345,7 +341,6 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
                 s.SpellName = nil
             end
         end
-        print('updating item data for socket:', socket.Id, itemname)
     end
 end
 
@@ -386,8 +381,8 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
                 GameTooltip:AddDoubleLine(tostring(SC.Locales['socket']..' '..self.Id), tostring('|cffffffff'..'drag an item or spell here to set cooldown'))
             end
             GameTooltip:AddLine(' ')
-            GameTooltip:AddDoubleLine('Simple Cooldowns Panel', tostring('|cffffffff'..name))
-            GameTooltip:AddLine(SC.Locales['panelmenutip'])
+            GameTooltip:AddDoubleLine('|cffA330C9Simple Cooldowns Panel|r', tostring('|cffffffff'..name))
+            GameTooltip:AddLine('|cffffffffShift click for menu')
             GameTooltip:Show()
         end)
         s:SetScript('OnMouseUp', function(self, button)
