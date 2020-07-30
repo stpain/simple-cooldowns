@@ -4,7 +4,6 @@ local addonName, SC = ...
 
 SC.Panels = {}
 SC.MovingMode = false
-SC.SpellButtonContextMenuDropDown = CreateFrame("Frame", "SimpleCooldownsSpellButtonContextMenu", UIParent, "UIDropDownMenuTemplate")
 SC.ContextMenu_DropDown = CreateFrame("Frame", "SimpleCooldownsSpellButtonContextMenu", UIParent, "UIDropDownMenuTemplate")
 SC.ContextMenu_Separator = "|TInterface/COMMON/UI-TooltipDivider:8:150|t"
 SC.ContextMenu = {}
@@ -230,9 +229,38 @@ function SC.GenerateMinimapContextMenu()
     local editPanel = {
         { text='Select panel', isTitle=true, notCheckable=true, }
     }
+    -- if next(SC.Panels) then
+    --     for k, panel in pairs(SC.Panels) do
+    --         table.insert(editPanel, {
+    --             text = k,
+    --             arg1 = panel,
+    --             arg2 = panel.Name,
+    --             hasArrow=true,
+    --             notCheckable=true,
+    --             menuList = {
+    --                 { text = panel.Name, isTitle=true, notCheckable=true, },
+    --                 { text = 'Show', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) self.arg1:Show() end, },
+    --                 { text = 'Hide', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) self.arg1:Hide() end, },
+    --                 { text = 'Delete', arg1=panel, notCheckable=true, func=function(self) self.arg1:Hide() SC.Panels[k] = nil SC_CHARACTER.Panels[k] = nil end, },
+    --                 { text = 'Socket size', isTitle=true, notClickable=true, notCheckable=true, },
+    --                 { text = ' ', arg1=panel, arg2 = panel.Name, notCheckable=true, customFrame=SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, },
+    --             }
+    --         })
+    --     end
+    -- end
+    SC.ContextMenu = {
+        { text = 'Simple Cooldowns', isTitle=true, notCheckable=true, },
+        { text = 'Toggle panel lock', notCheckable=true, func=SC.TogglePanelLock, keepShownOnClick=true },
+        --{ text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
+        --{ text = 'Panel Options', isTitle=true, notCheckable=true, },
+        { text = 'New panel', notCheckable=true, hasArrow=true, menuList=newPanel },
+        --{ text = 'Panels', hasArrow=true, notCheckable=true, menuList=editPanel },
+        { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
+        { text = 'Edit Panel', isTitle=true, notCheckable=true, },
+    }
     if next(SC.Panels) then
         for k, panel in pairs(SC.Panels) do
-            table.insert(editPanel, {
+            table.insert(SC.ContextMenu, {
                 text = k,
                 arg1 = panel,
                 arg2 = panel.Name,
@@ -240,8 +268,18 @@ function SC.GenerateMinimapContextMenu()
                 notCheckable=true,
                 menuList = {
                     { text = panel.Name, isTitle=true, notCheckable=true, },
-                    { text = 'Show', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) self.arg1:Show() end, },
-                    { text = 'Hide', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) self.arg1:Hide() end, },
+                    { text = 'Show', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) 
+                        self.arg1:Show()
+                        if SC_CHARACTER and SC_CHARACTER.Panels[self.arg1.Name] then
+                            SC_CHARACTER.Panels[self.arg1.Name]['Display'] = true
+                        end
+                    end, },
+                    { text = 'Hide', arg1=panel, notCheckable=true, keepShownOnClick=true, func=function(self) 
+                        self.arg1:Hide() 
+                        if SC_CHARACTER and SC_CHARACTER.Panels[self.arg1.Name] then
+                            SC_CHARACTER.Panels[self.arg1.Name]['Display'] = false
+                        end
+                    end, },
                     { text = 'Delete', arg1=panel, notCheckable=true, func=function(self) self.arg1:Hide() SC.Panels[k] = nil SC_CHARACTER.Panels[k] = nil end, },
                     { text = 'Socket size', isTitle=true, notClickable=true, notCheckable=true, },
                     { text = ' ', arg1=panel, arg2 = panel.Name, notCheckable=true, customFrame=SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, },
@@ -249,14 +287,6 @@ function SC.GenerateMinimapContextMenu()
             })
         end
     end
-    SC.ContextMenu = {
-        { text = 'Simple Cooldowns', isTitle=true, notCheckable=true, },
-        { text = 'Toggle panel lock', notCheckable=true, func=SC.TogglePanelLock, keepShownOnClick=true },
-        { text = SC.ContextMenu_Separator, notCheckable=true, },
-        { text = 'Panel Options', isTitle=true, notCheckable=true, },
-        { text = 'New panel', notCheckable=true, hasArrow=true, menuList=newPanel },
-        { text = 'Panels', hasArrow=true, notCheckable=true, menuList=editPanel },
-    }
 end
 
 function SC.ContextMenu_CreatePanel()
@@ -283,7 +313,7 @@ function SC.ContextMenu_CreatePanel()
     end
     local iconSize = SC.ContextMenu_CustomFrame_NewPanel_IconSize_Slider.slider:GetValue()
     iconSize = tonumber(iconSize)
-    SC.CreatePanel(name, 'CENTER', (iconSize * numSockets), iconSize, 0, 0, sockets)
+    SC.CreatePanel(name, 'CENTER', (iconSize * numSockets), iconSize, 0, 0, sockets, true)
     SC.ContextMenu_CustomFrame_NewPanel_Editbox.editbox:ClearFocus()
 end
 
@@ -345,7 +375,7 @@ function SC.UpdateSocket(panel, socket, spellId, itemId) --are spells and items 
 end
 
 
-function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
+function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets, display)
     local f = CreateFrame('FRAME', tostring('SimpleCooldownsPanel_'..name), UIParent)
     f.Background = f:CreateTexture("$parentBackground", 'BACKGROUND')
     f.Background:SetAllPoints(f)
@@ -388,7 +418,7 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
         s:SetScript('OnMouseUp', function(self, button)
             if button == 'RightButton' and IsShiftKeyDown() then
                 SC.GenerateMinimapContextMenu()
-                EasyMenu(SC.ContextMenu, SC.ContextMenu_DropDown, "cursor", 0 , 0, "MENU")
+                EasyMenu(SC.ContextMenu, SC.ContextMenu_DropDown, "cursor", 0 , 100, "MENU")
             end
         end)
         s:SetScript('OnLeave', function(self)
@@ -408,6 +438,11 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
         s.Texture = s:CreateTexture("$parentTexture", 'ARTWORK')
         s.Texture:SetAllPoints(s)
         s.Texture:SetTexture(v.Texture)
+        s.UsableOverlay = s:CreateTexture("$parentUsableOverlay", "OVERLAY")
+        s.UsableOverlay:SetPoint('TOPLEFT', 2, -2)
+        s.UsableOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
+        s.UsableOverlay:SetColorTexture(0,0,0,0.6)
+        s.UsableOverlay:Hide()
         s.RangeOverlay = s:CreateTexture("$parentRangeOverlay", "OVERLAY")
         s.RangeOverlay:SetPoint('TOPLEFT', 2, -2)
         s.RangeOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
@@ -424,6 +459,10 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
         s.Id = v.Id
         table.insert(f.Sockets, s)
     end
+    --print('created', name)
+    if display == false then
+        f:Hide()
+    end
     SC.Panels[name] = f
     if SC_CHARACTER and SC_CHARACTER.Panels then
         if not SC_CHARACTER.Panels[name] then
@@ -435,6 +474,7 @@ function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets)
             SC_CHARACTER.Panels[name].OffsetX = offsetX
             SC_CHARACTER.Panels[name].OffsetY = offsetY
             SC_CHARACTER.Panels[name].Sockets = sockets
+            SC_CHARACTER.Panels[name].Display = display
         end
     end
 end
@@ -491,7 +531,8 @@ function SC.LoadPanels()
                 panel.Height,
                 panel.OffsetX, 
                 panel.OffsetY, 
-                panel.Sockets
+                panel.Sockets,
+                panel.Display
             )
         end
     end
@@ -514,6 +555,12 @@ function SC.OnUpdate()
                     socket.RangeOverlay:Show()
                 else
                     socket.RangeOverlay:Hide()
+                    local usable, noMana = IsUsableSpell(socket.SpellName)
+                    if usable == false then
+                        socket.UsableOverlay:Show()
+                    elseif usable == true then
+                        socket.UsableOverlay:Hide()
+                    end
                 end
             end
             if socket.SpellId then
