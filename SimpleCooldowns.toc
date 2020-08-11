@@ -13,4 +13,5 @@ Libs\LibDbIcon-1.0\LibDbIcon-1.0.lua
 
 
 SimpleCooldowns_Locales.lua
+SimpleCooldowns_Panel.lua
 SimpleCooldowns_Main.lua
