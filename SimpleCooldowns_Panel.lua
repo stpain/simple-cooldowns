@@ -5,7 +5,7 @@ local addonName, SC = ...
 SC.Panel = {}
 SC.Panel.__index = SC.Panel
 
-function SC.Panel.New(name, anchor, width, height, offsetX, offsetY, sockets, display, spec, orientation)
+function SC.Panel.NewPanel(name, anchor, width, height, offsetX, offsetY, sockets, display, spec, orientation)
     local panel = {}
     local frame = CreateFrame('FRAME', string.format('%s_%s', 'SimpleCooldowns', name), UIParent)
     panel.Frame = frame
@@ -43,6 +43,12 @@ function SC.Panel.New(name, anchor, width, height, offsetX, offsetY, sockets, di
     return panel
 end
 
+--- creates a new socket frame
+-- @param iter number value for this socket within the panel sockets table, also used to positioning
+-- @param rangeOverlay boolean value used to show/hide the rangeOverlay
+-- @param rangeOverlayRGBA table value used to set the rangeOverlay colour
+-- @param usableOverlay boolean value used to show/hide the usable Overlay
+-- @param usableOverlayRGBA table value used to set the rusableOverlay colour
 function SC.Panel:CreateSocket(iter, rangeOverlay, rangeOverlayRGBA, usableOverlay, usableOverlayRGBA)
     local panel = self
     local s = CreateFrame('FRAME', tostring(self.Name..'_Socket'..iter), self.Frame)
@@ -99,7 +105,6 @@ function SC.Panel:CreateSocket(iter, rangeOverlay, rangeOverlayRGBA, usableOverl
         end
     end)
     s:SetScript('OnReceiveDrag', function(self)
-        print(self.Id, panel.Name)
         local info, a, b, c = GetCursorInfo()
         if info == 'item' then
             panel:SetSocketInfo(self, info, tonumber(a))
@@ -132,6 +137,8 @@ function SC.Panel:CreateSocket(iter, rangeOverlay, rangeOverlayRGBA, usableOverl
     table.insert(self.Sockets, s)
 end
 
+--- adjust the panel layout, can be used any time the panel layout needs updating
+-- @param orientation string value for new layout
 function SC.Panel:SetOrientation(orientation)
     self.Orientation = orientation
     if self.Orientation == 'horizontal' then
@@ -162,18 +169,23 @@ function SC.Panel:SetOrientation(orientation)
     end
 end
 
+--- removes a socket from the players UI and deletes from saved var
+-- @param socket frame object to remove
+-- @param id number value of the table element for the socket
 function SC.Panel:DeleteSocket(socket, id)
     local guid = UnitGUID('player')
     if SC_GLOBAL and guid then
         socket:Hide()
         table.remove(self.Sockets, id)
-        for k, socket in ipairs(self.Sockets) do
-            socket:SetPoint('BOTTOMLEFT', ((k-1)*self.Height), 0)
-        end
-        self.Frame:SetWidth(self.Height * #self.Sockets)
+        -- this will handle the new panel layout
+        self:SetOrientation(self.Orientation)
     end
 end
 
+--- updates the socket spell or item information and writes data to save var
+-- @param socket frame object to update
+-- @param info string either spell or item
+-- @param id number value for the spell or item ID
 function SC.Panel:SetSocketInfo(socket, info, id)
     if info == 'item' then
         socket.ItemId = tonumber(id)
@@ -200,7 +212,7 @@ function SC.Panel:SetSocketInfo(socket, info, id)
         if SC_GLOBAL.Characters[guid].Panels[self.Name] then
             for k, s in ipairs(SC_GLOBAL.Characters[guid].Panels[self.Name].Sockets) do
                 if self.Sockets[k] then
-                    s.Texture = self.Sockets[k].Texture
+                    s.Texture = self.Sockets[k].Texture:GetTexture()
                     s.ItemId = self.Sockets[k].ItemId
                     s.ItemName = self.Sockets[k].ItemName
                     s.SpellId = self.Sockets[k].SpellId

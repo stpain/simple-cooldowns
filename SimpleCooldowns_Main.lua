@@ -51,6 +51,47 @@ function SC.RgbToPercent(t)
     end
 end
 
+function SC.TogglePanelLock()
+    SC.MovingMode = not SC.MovingMode
+    if SC.MovingMode == true then
+        for k, panel in pairs(SC.Panels) do
+            SC.MakeFrameMovable(panel.Frame)
+            panel.Title:Show()
+            panel.Background:Show()
+        end
+    elseif SC.MovingMode == false then
+        for k, panel in pairs(SC.Panels) do
+            SC.LockFramePos(panel.Frame)
+            panel.Title:Hide()
+            panel.Background:Hide()
+        end
+    end
+    for k, panel in pairs(SC.Panels) do
+        local guid = UnitGUID('player')
+        if guid then
+            local point, relativeTo, relativePoint, xOfs, yOfs = panel.Frame:GetPoint()
+            SC_GLOBAL.Characters[guid].Panels[panel.Name].Anchor = point
+            SC_GLOBAL.Characters[guid].Panels[panel.Name].OffsetX = xOfs
+            SC_GLOBAL.Characters[guid].Panels[panel.Name].OffsetY = yOfs
+        end
+    end
+end
+
+function SC.FetchSpecData()
+    local ret = false
+    local currentSpec = GetSpecialization()
+    if currentSpec then
+        local id, name, description, icon, background, role, primaryStat = GetSpecializationInfo(currentSpec)
+        if id then
+            local role = GetSpecializationRoleByID(tonumber(id))
+            if role ~= nil then
+                ret = { ID = id, Name = name, Icon = icon }
+            end
+        end
+    end
+    return ret
+end
+
 ----------------------------------------------------------------------------------------------------
 -- slash commands
 ----------------------------------------------------------------------------------------------------
@@ -58,11 +99,7 @@ SLASH_SIMPLECOOLDOWNS1 = '/s-c'
 SlashCmdList['SIMPLECOOLDOWNS'] = function(msg)
 	if msg == '-help' then
         print('help')
-    elseif msg == 'test' then
-        local s = SC.Socket:New(1, 2)
-        s:Foo(3)
-        s:Add()
-        s:Edit(8)
+
     end
 end
 
@@ -96,33 +133,9 @@ function SC.CreateMinimapButton()
     SC.MinimapIcon:Register(addonName, SC.MinimapButtonObject, SC_GLOBAL['MinimapButton'])
 end
 
-function SC.TogglePanelLock()
-    SC.MovingMode = not SC.MovingMode
-    if SC.MovingMode == true then
-        for k, panel in pairs(SC.Panels) do
-            SC.MakeFrameMovable(panel.Frame)
-            panel.Title:Show()
-            panel.Background:Show()
-        end
-    elseif SC.MovingMode == false then
-        for k, panel in pairs(SC.Panels) do
-            SC.LockFramePos(panel.Frame)
-            panel.Title:Hide()
-            panel.Background:Hide()
-        end
-    end
-    for k, panel in pairs(SC.Panels) do
-        local guid = UnitGUID('player')
-        if guid then
-            --local point, relativeTo, relativePoint, xOfs, yOfs = panel:GetPoint()
-            local point, relativeTo, relativePoint, xOfs, yOfs = panel.Frame:GetPoint()
-            SC_GLOBAL.Characters[guid].Panels[panel.Name].Anchor = point
-            SC_GLOBAL.Characters[guid].Panels[panel.Name].OffsetX = xOfs
-            SC_GLOBAL.Characters[guid].Panels[panel.Name].OffsetY = yOfs
-        end
-    end
-end
-
+----------------------------------------------------------------------------------------------------
+-- context menu custom frames
+----------------------------------------------------------------------------------------------------
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider = CreateFrame('FRAME', 'SCContextMenuCustomFrameNewPanel_Sockets_Slider', UIParent, 'UIDropDownCustomMenuEntryTemplate')
 SC.ContextMenu_CustomFrame_NewPanel_Sockets_Slider:SetSize(125, 16)
 
@@ -234,12 +247,17 @@ SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnValueCh
                 for k, socket in ipairs(panel.Sockets) do
                     socket:SetSize(self:GetValue(), self:GetValue())
                 end
+                -- this will handle the size changes of sockets and panels
                 panel:SetOrientation(panel.Orientation)
             end
         end
     end
 end)
 
+
+----------------------------------------------------------------------------------------------------
+-- context menu
+----------------------------------------------------------------------------------------------------
 function SC.GenerateContextMenu()
     local newPanel = {
         { text = 'Create panel', isTitle=true, notCheckable=true, },
@@ -253,9 +271,9 @@ function SC.GenerateContextMenu()
         { text = ' ', notCheckable=true, notClickable=true, },
         { text = 'Create panel', notCheckable=true, func=SC.ContextMenu_CreatePanel },
     }
-    local editPanel = {
-        { text='Select panel', isTitle=true, notCheckable=true, }
-    }
+    -- local editPanel = {
+    --     { text='Select panel', isTitle=true, notCheckable=true, }
+    -- }
     SC.ContextMenu = {
         { text = 'Simple Cooldowns', isTitle=true, notCheckable=true, },
         { text = 'Toggle panel lock', notCheckable=true, func=SC.TogglePanelLock, keepShownOnClick=true },
@@ -282,8 +300,8 @@ function SC.GenerateContextMenu()
                         keepShownOnClick=true,
                         checked = function(self) 
                             local guid = UnitGUID('player')
-                            if guid then
-                                return SC_GLOBAL.Characters[guid].Panels[self.arg1.Name]['Display']
+                            if guid and SC_GLOBAL then
+                                return SC_GLOBAL.Characters[guid].Panels[panel.Name]['Display']
                             else
                                 return false
                             end
@@ -291,14 +309,14 @@ function SC.GenerateContextMenu()
                         func = function(self)
                             local guid = UnitGUID('player')
                             if guid then
-                                if SC_GLOBAL and SC_GLOBAL.Characters[guid].Panels[self.arg1.Name] then
-                                    SC_GLOBAL.Characters[guid].Panels[self.arg1.Name]['Display'] = not SC_GLOBAL.Characters[guid].Panels[self.arg1.Name]['Display']
+                                if SC_GLOBAL and SC_GLOBAL.Characters[guid].Panels[panel.Name] then
+                                    SC_GLOBAL.Characters[guid].Panels[panel.Name]['Display'] = not SC_GLOBAL.Characters[guid].Panels[panel.Name]['Display']
                                 end
                             end
-                            if SC_GLOBAL.Characters[guid].Panels[self.arg1.Name] and SC_GLOBAL.Characters[guid].Panels[self.arg1.Name]['Display'] == true then
-                                self.arg1.Frame:Show()
+                            if SC_GLOBAL.Characters[guid].Panels[panel.Name] and SC_GLOBAL.Characters[guid].Panels[panel.Name]['Display'] == true then
+                                panel.Frame:Show()
                             else
-                                self.arg1.Frame:Hide()
+                                panel.Frame:Hide()
                             end
                         end,
                     },
@@ -311,7 +329,7 @@ function SC.GenerateContextMenu()
                             checked = function(self)
                                 local guid = UnitGUID('player')
                                 if guid and SC_GLOBAL then
-                                    if SC_GLOBAL.Characters[guid].Panels[self.arg1.Name]['Orientation'] == 'horizontal' then
+                                    if SC_GLOBAL.Characters[guid].Panels[panel.Name]['Orientation'] == 'horizontal' then
                                         return true
                                     else
                                         return false
@@ -332,7 +350,7 @@ function SC.GenerateContextMenu()
                             checked = function(self)
                                 local guid = UnitGUID('player')
                                 if guid and SC_GLOBAL then
-                                    if SC_GLOBAL.Characters[guid].Panels[self.arg1.Name]['Orientation'] == 'vertical' then
+                                    if SC_GLOBAL.Characters[guid].Panels[panel.Name]['Orientation'] == 'vertical' then
                                         return true
                                     else
                                         return false
@@ -351,7 +369,7 @@ function SC.GenerateContextMenu()
                         arg1=panel, 
                         notCheckable=true, 
                         func=function(self) 
-                            self.arg1.Frame:Hide() 
+                            panel.Frame:Hide() 
                             local guid = UnitGUID('player')
                             if guid then
                                 SC.Panels[k] = nil SC_GLOBAL.Characters[guid].Panels[k] = nil 
@@ -359,7 +377,7 @@ function SC.GenerateContextMenu()
                         end, 
                     },
                     { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
-                    { text = 'Sockets', notCheckable=true, isTitle=true,},
+                    { text = 'Sockets', arg1='sockets-header', notCheckable=true, isTitle=true,},
                     { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
                     { text = 'Socket size', isTitle=true, notClickable=true, notCheckable=true, },
                     { text = ' ', arg1=panel, arg2 = panel.Name, notCheckable=true, customFrame=SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, },
@@ -372,7 +390,7 @@ function SC.GenerateContextMenu()
                             local guid = UnitGUID('player')
                             if guid and SC_GLOBAL then
                                 local id = GetTime()
-                                table.insert(SC_GLOBAL.Characters[guid].Panels[self.arg1.Name].Sockets, { 
+                                table.insert(SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets, { 
                                     Id = id, 
                                     Texture = 132048, 
                                     SpellId = nil, 
@@ -385,8 +403,8 @@ function SC.GenerateContextMenu()
                                     UsableOverlay = true,
                                     UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8}, 
                                 })
-                                SC_GLOBAL.Characters[guid].Panels[self.arg1.Name].Width = SC_GLOBAL.Characters[guid].Panels[self.arg1.Name].Width + SC_GLOBAL.Characters[guid].Panels[self.arg1.Name].Height
-                                self.arg1:CreateSocket((#self.arg1.Sockets + 1), true, {r=1, g=0, b=0, a=0.6}, true, {r=0, g=0, b=0, a=0.8})
+                                SC_GLOBAL.Characters[guid].Panels[panel.Name].Width = SC_GLOBAL.Characters[guid].Panels[panel.Name].Width + SC_GLOBAL.Characters[guid].Panels[panel.Name].Height
+                                panel:CreateSocket((#panel.Sockets + 1), true, {r=1, g=0, b=0, a=0.6}, true, {r=0, g=0, b=0, a=0.8})
                             end
                         end
                     }
@@ -401,6 +419,7 @@ function SC.GenerateContextMenu()
                         elseif socket.ItemName then
                             name = socket.ItemName
                         end
+                        -- keep an eye on the value passed in to set position, should be set to the element with arg1='sockets-header'
                         table.insert(button.menuList, 7+i, {
                             text = string.format('%s %s', i, name),
                             isTitle = false,
@@ -409,9 +428,36 @@ function SC.GenerateContextMenu()
                             hasArrow=true,
                             menuList = {
                                 { text = 'Visibility', isTitle=false, notCheckable=true, hasArrow=true, menuList = {
-                                    { text = 'Always', },
-                                    { text = 'During cooldown', },
-                                    { text = 'When usable', },
+                                    { 
+                                        text = 'Always',
+                                        checked = function()
+                                            if socket.Visibility == 1 then
+                                                return true
+                                            else
+                                                return false
+                                            end
+                                        end,
+                                    },
+                                    { 
+                                        text = 'During cooldown', 
+                                        checked = function()
+                                            if socket.Visibility == 2 then
+                                                return true
+                                            else
+                                                return false
+                                            end
+                                        end,
+                                    },
+                                    { 
+                                        text = 'When usable', 
+                                        checked = function()
+                                            if socket.Visibility == 3 then
+                                                return true
+                                            else
+                                                return false
+                                            end
+                                        end,
+                                    },
                                 }},
                                 { 
                                     text = 'Delete', 
@@ -439,7 +485,6 @@ function SC.ContextMenu_CreatePanel()
     local sockets = {}
     for i = 1, numSockets do
         table.insert(sockets, {
-            Id = GetTime(), 
             Texture = 132048, 
             SpellId = nil, 
             SpellName = nil, 
@@ -475,7 +520,7 @@ function SC.ContextMenu_CreatePanel()
             Specialization = spec,
             Orientation = 'horizontal',
         }
-        SC.Panels[name] = Panel.New(name, 'CENTER', tonumber(iconSize * numSockets), tonumber(iconSize), 0, 0, sockets, true, spec, 'horizontal')
+        SC.Panels[name] = Panel.NewPanel(name, 'CENTER', tonumber(iconSize * numSockets), tonumber(iconSize), 0, 0, sockets, true, spec, 'horizontal')
         for k, v in ipairs(sockets) do
             SC.Panels[name]:CreateSocket(k, v.RangeOverlay, v.RangeOverlayRGBA, v.UsableOverlay, v.UsableOverlayRGBA)
         end
@@ -483,342 +528,6 @@ function SC.ContextMenu_CreatePanel()
     SC.ContextMenu_CustomFrame_NewPanel_Editbox.editbox:ClearFocus()
 end
 
-----------------------------------------------------------------------------------------------------
--- functions
-----------------------------------------------------------------------------------------------------
---[[
---currently updating UI and then writing data to saved var, consider writing data and making a refresh func
-function SC.UpdateSocket(panel, socket, spellId, itemId) --spell and item id's need to be managed differently as the update func will call item cooldown or spell cooldown
-    local guid = UnitGUID('player')
-    if guid then
-        if spellId ~= nil then
-            spellId = tonumber(spellId)
-            local spelltexture = select(1, GetSpellTexture(spellId))
-            spelltexture = tonumber(spelltexture)
-            local spellname = select(1, GetSpellInfo(spellId))
-            spellname = tostring(spellname)
-            if SC_GLOBAL and SC_GLOBAL.Characters[guid].Panels[panel.Name] then
-                for k, s in ipairs(SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets) do
-                    if s.Id == socket.Id then
-                        s.Texture = spelltexture
-                        s.SpellId = spellId
-                        s.SpellName = spellname
-                        s.ItemId = nil
-                        s.ItemName = nil
-                    end
-                end
-            end
-            -- for k, s in ipairs(SC.Panels[panel.Name].Sockets) do
-            --     if s.Id == socket.Id then
-            --         s.Texture:SetTexture(spelltexture)
-            --         s.SpellId = spellId
-            --         s.SpellName = spellname
-            --         s.ItemId = nil
-            --         s.ItemName = nil
-            --     end
-            -- end
-        elseif itemId ~= nil then
-            itemId = tonumber(itemId)
-            local itemname = select(1, GetItemInfo(itemId))
-            itemname = tostring(itemname)
-            local itemtexture = select(10, GetItemInfo(itemId))
-            itemtexture = tonumber(itemtexture)
-            if SC_GLOBAL and SC_GLOBAL.Characters[guid].Panels[panel.Name] then
-                for k, s in ipairs(SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets) do
-                    if s.Id == socket.Id then
-                        s.Texture = itemtexture
-                        s.ItemId = itemId
-                        s.ItemName = itemname
-                        s.SpellId = nil
-                        s.SpellName = nil
-                    end
-                end
-            end
-            -- for k, s in ipairs(SC.Panels[panel.Name].Sockets) do
-            --     if s.Id == socket.Id then
-            --         s.Texture:SetTexture(itemtexture)
-            --         s.ItemId = itemId
-            --         s.ItemName = itemname
-            --         s.SpellId = nil
-            --         s.SpellName = nil
-            --     end
-            -- end
-        end
-    end
-end
-
-function SC.DeleteSocket(panel, socket, id)
-    local guid = UnitGUID('player')
-    if SC_GLOBAL and guid then
-        socket:Hide()
-        --socket:SetSize(1,1)
-        table.remove(panel.Sockets, id)
-        local height = socket:GetHeight()
-        for k, socket in ipairs(panel.Sockets) do
-            socket:SetPoint('BOTTOMLEFT', ((k-1)*height), 0)
-        end
-        panel:SetWidth(height * #panel.Sockets)
-    end
-end
-
-
-function SC.AddSocket(panel, id)
-    local guid = UnitGUID('player')
-    if SC_GLOBAL then
-        for k, socket in ipairs(SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets) do
-            if not SC.Panels[panel.Name].Sockets[k] then
-                local s = CreateFrame('FRAME', tostring("$parentSocket"..k), panel) --, "SecureActionButtonTemplate")
-                s:EnableMouse(true)
-                s:SetBackdrop({
-                    edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-                    edgeSize = 16,
-                })
-                s:SetSize(tonumber(SC_GLOBAL.Characters[guid].Panels[panel.Name].Height), tonumber(SC_GLOBAL.Characters[guid].Panels[panel.Name].Height))
-                s:SetPoint('BOTTOMLEFT', ((k-1)*tonumber(SC_GLOBAL.Characters[guid].Panels[panel.Name].Height)), 0)
-                s:SetScript('OnEnter', function(self)
-                    GameTooltip:SetOwner(self, 'ANCHOR_CURSOR')
-                    if self.SpellId then
-                        GameTooltip:SetHyperlink('spell:'..self.SpellId)
-                    elseif self.ItemId then
-                        GameTooltip:SetHyperlink('item:'..self.ItemId)
-                    else
-                        GameTooltip:AddLine(tostring('|cffffffff'..'drag an item or spell here')) -- \nor |rShift|cffffffff click to move spells or items'))
-                    end
-                    GameTooltip:AddLine(' ')
-                    GameTooltip:AddLine('|cffA330C9Simple Cooldowns|r')
-                    GameTooltip:AddDoubleLine('Panel', tostring('|cffffffff'..panel.Name))
-                    GameTooltip:AddDoubleLine('Spec', tostring('|cffffffff'..panel.Specialization.Name))
-                    GameTooltip:AddLine('|cffffffffShift click for menu')
-                    GameTooltip:Show()
-                end)
-                s:SetScript('OnMouseUp', function(self, button)
-                    if button == 'RightButton' and IsShiftKeyDown() then
-                        SC.GenerateContextMenu()
-                        EasyMenu(SC.ContextMenu, SC.ContextMenu_DropDown, "cursor", 0 , 100, "MENU")
-                    end
-                end)
-                s:SetScript('OnLeave', function(self)
-                    GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
-                end)
-                s:SetScript('OnReceiveDrag', function(self) --update function built in here?
-                    local info, a, b, c = GetCursorInfo()
-                    -- print('got cursor info', info, a, b, c)
-                    -- ClearCursor()
-                    -- print('clear cursor')
-                    -- if s.SpellId then
-                    --     PickupSpell(s.SpellId)
-                    --     print('picked up spell', s.spellId)
-                    --     local info, a, b, c = GetCursorInfo()
-                    --     print('got new cursor info', info, a, b, c)
-                    --     --PickupSpellBookItem(s.SpellName)
-                    -- elseif s.ItemId then
-                    --     PickupItem(s.ItemId)
-                    --     print('picked up item', s.spellId)
-                    --     local info, a, b, c = GetCursorInfo()
-                    --     print('got new cursor info', info, a, b, c)
-                    -- else
-                    --     ClearCursor()
-                    -- end
-                    if info == 'item' then
-                        itemid = tonumber(a)
-                        SC.UpdateSocket(panel, self, nil, itemid)
-                    elseif info == 'spell' then
-                        local spellid = tonumber(c)
-                        SC.UpdateSocket(panel, self, spellid, nil)
-                    end
-                    ClearCursor()
-                end)
-                s.Texture = s:CreateTexture("$parentTexture", 'ARTWORK')
-                s.Texture:SetAllPoints(s)
-                s.Texture:SetTexture(socket.Texture)
-                s.UsableOverlay = s:CreateTexture("$parentUsableOverlay", "OVERLAY")
-                s.UsableOverlay:SetPoint('TOPLEFT', 2, -2)
-                s.UsableOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
-                s.UsableOverlay:SetColorTexture(0,0,0,0.8)
-                s.UsableOverlay:Hide()
-                s.RangeOverlay = s:CreateTexture("$parentRangeOverlay", "OVERLAY")
-                s.RangeOverlay:SetPoint('TOPLEFT', 2, -2)
-                s.RangeOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
-                s.RangeOverlay:SetColorTexture(1,0,0,0.6)
-                s.RangeOverlay:Hide()
-                s.Cooldown = CreateFrame("Cooldown", "$parentCooldown", s, "CooldownFrameTemplate")
-                s.Cooldown:SetAllPoints(s)
-                s.Cooldown:SetFrameLevel(6)
-                s.Cooldown:Show()
-                s.SpellId = nil
-                s.SpellName = nil
-                s.ItemId = nil
-                s.ItemName = nil
-                s.Id = socket.Id
-                table.insert(SC.Panels[panel.Name].Sockets, s) 
-            end
-        end
-        panel:SetWidth(SC_GLOBAL.Characters[guid].Panels[panel.Name].Height * #SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets)
-    end
-end
-
-
-function SC.CreatePanel(name, anchor, width, height, offsetX, offsetY, sockets, display, spec)
-    local f = CreateFrame('FRAME', tostring('SimpleCooldownsPanel_'..name), UIParent)
-    f.Background = f:CreateTexture("$parentBackground", 'BACKGROUND')
-    f.Background:SetAllPoints(f)
-    f.Background:SetColorTexture(0,0,0,0.7)
-    f.Background:Hide()
-    f.Title = f:CreateFontString("$parentTitle", 'OVERLAY', 'GameFontNormal')
-    f.Title:SetPoint('TOP', 0, 0)
-    f.Title:SetFont("Fonts\\FRIZQT__.TTF", 12)
-    f.Title:SetTextColor(1,1,1,1)
-    f.Title:SetText('Click to drag & move')
-    f.Title:Hide()
-    f:SetPoint(anchor, offsetX, offsetY)
-    f:SetSize(width, height + 10)
-    f:EnableMouse(true)
-    f.Name = name
-    f.Sockets = {}
-    for k, v in ipairs(sockets) do
-        local s = CreateFrame('FRAME', tostring("$parentSocket"..k), f) --, "SecureActionButtonTemplate")
-        s:EnableMouse(true)
-        s:SetBackdrop({
-            edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-            edgeSize = 16,
-        })
-        s:SetSize(height, height)
-        s:SetPoint('BOTTOMLEFT', ((k-1)*height), 0)
-        s:SetScript('OnEnter', function(self)
-            GameTooltip:SetOwner(self, 'ANCHOR_CURSOR')
-            if self.SpellId then
-                GameTooltip:SetHyperlink('spell:'..self.SpellId)
-            elseif self.ItemId then
-                GameTooltip:SetHyperlink('item:'..self.ItemId)
-            else
-                GameTooltip:AddLine(tostring('|cffffffff'..'drag an item or spell here')) -- \nor |rShift|cffffffff click to move spells or items'))
-            end
-            GameTooltip:AddLine(' ')
-            GameTooltip:AddLine('|cffA330C9Simple Cooldowns|r')
-            GameTooltip:AddDoubleLine('Panel', tostring('|cffffffff'..name))
-            GameTooltip:AddDoubleLine('Spec', tostring('|cffffffff'..spec.Name))
-            GameTooltip:AddLine('|cffffffffShift click for menu')
-            GameTooltip:Show()
-        end)
-        s:SetScript('OnMouseUp', function(self, button)
-            if button == 'RightButton' and IsShiftKeyDown() then
-                SC.GenerateContextMenu()
-                EasyMenu(SC.ContextMenu, SC.ContextMenu_DropDown, "cursor", 0 , 100, "MENU")
-            end
-        end)
-        s:SetScript('OnMouseDown', function(self, button)
-            if button == 'LeftButton' and IsShiftKeyDown() then
-                -- local info, a, b, c = GetCursorInfo()
-                -- ClearCursor()
-                -- if self.SpellId then
-                --     PickupSpell(self.SpellId)
-                --     print('picked up spell', self.spellId)
-                --     local info, a, b, c = GetCursorInfo()
-                --     print('got new cursor info', info, a, b, c)
-                --     --PickupSpellBookItem(self.SpellName)
-                -- elseif self.ItemId then
-                --     PickupItem(self.ItemId)
-                --     print('picked up item', self.spellId)
-                --     local info, a, b, c = GetCursorInfo()
-                --     print('got new cursor info', info, a, b, c)
-                -- else
-                --     ClearCursor()
-                -- end
-                -- if info == 'item' then
-                --     SC.UpdateSocket(f, self, nil, tonumber(a))
-                -- elseif info == 'spell' then
-                --     SC.UpdateSocket(f, self, tonumber(c), nil)
-                -- end
-            end
-        end)
-        s:SetScript('OnLeave', function(self)
-            GameTooltip_SetDefaultAnchor(GameTooltip, UIParent)
-        end)
-        s:SetScript('OnReceiveDrag', function(self) --update function built in here?
-            local info, a, b, c = GetCursorInfo()
-            -- print('got cursor info', info, a, b, c)
-            -- ClearCursor()
-            -- print('clear cursor')
-            -- if self.SpellId then
-            --     PickupSpell(self.SpellId)
-            --     print('picked up spell', self.spellId)
-            --     local info, a, b, c = GetCursorInfo()
-            --     print('got new cursor info', info, a, b, c)
-            --     --PickupSpellBookItem(self.SpellName)
-            -- elseif self.ItemId then
-            --     PickupItem(self.ItemId)
-            --     print('picked up item', self.spellId)
-            --     local info, a, b, c = GetCursorInfo()
-            --     print('got new cursor info', info, a, b, c)
-            -- else
-            --     ClearCursor()
-            -- end
-            if info == 'item' then
-                SC.UpdateSocket(f, self, nil, tonumber(a))
-            elseif info == 'spell' then
-                SC.UpdateSocket(f, self, tonumber(c), nil)
-            end
-            ClearCursor()
-        end)
-        s.Texture = s:CreateTexture("$parentTexture", 'ARTWORK')
-        s.Texture:SetAllPoints(s)
-        s.Texture:SetTexture(v.Texture)
-        s.UsableOverlay = s:CreateTexture("$parentUsableOverlay", "OVERLAY")
-        s.UsableOverlay:SetPoint('TOPLEFT', 2, -2)
-        s.UsableOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
-        s.UsableOverlay:SetColorTexture(0,0,0,0.8)
-        s.UsableOverlay:Hide()
-        s.RangeOverlay = s:CreateTexture("$parentRangeOverlay", "OVERLAY")
-        s.RangeOverlay:SetPoint('TOPLEFT', 2, -2)
-        s.RangeOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
-        s.RangeOverlay:SetColorTexture(1,0,0,0.6)
-        s.RangeOverlay:Hide()
-        s.Cooldown = CreateFrame("Cooldown", "$parentCooldown", s, "CooldownFrameTemplate")
-        s.Cooldown:SetAllPoints(s)
-        s.Cooldown:SetFrameLevel(6)
-        s.Cooldown:Show()
-        s.SpellId = v.SpellId
-        s.SpellName = v.SpellName
-        s.ItemId = v.ItemId
-        s.ItemName = v.ItemName
-        s.Id = v.Id
-        table.insert(f.Sockets, s)
-    end
-    --print('created', name)
-    if display == false then
-        f:Hide()
-    end
-    f.Specialization = spec
-
-    -- add to in game cache
-    SC.Panels[name] = f
-
-    -- check spec and update show/hide
-    local specTable = SC.FetchSpecData()
-    if spec.ID ~= specTable.ID then
-        f:Hide()
-    end
-
-    -- add to saved var if new panel
-    local guid = UnitGUID('player')
-    if guid then
-        if SC_GLOBAL and SC_GLOBAL.Characters[guid].Panels then
-            if not SC_GLOBAL.Characters[guid].Panels[name] then
-                SC_GLOBAL.Characters[guid].Panels[name] = {}
-                SC_GLOBAL.Characters[guid].Panels[name].Name = name
-                SC_GLOBAL.Characters[guid].Panels[name].Anchor = anchor
-                SC_GLOBAL.Characters[guid].Panels[name].Width = width
-                SC_GLOBAL.Characters[guid].Panels[name].Height = height
-                SC_GLOBAL.Characters[guid].Panels[name].OffsetX = offsetX
-                SC_GLOBAL.Characters[guid].Panels[name].OffsetY = offsetY
-                SC_GLOBAL.Characters[guid].Panels[name].Sockets = sockets
-                SC_GLOBAL.Characters[guid].Panels[name].Display = display
-                SC_GLOBAL.Characters[guid].Panels[name].Specialization = spec
-            end
-        end
-    end
-end
-]]
 
 
 ----------------------------------------------------------------------------------------------------
@@ -835,7 +544,6 @@ function SC.Init()
     local guid = UnitGUID('player')
     local spec = SC.FetchSpecData()
     if guid and spec then
-        print(guid, spec.Name, spec.ID)
         if not SC_GLOBAL then 
             SC_GLOBAL = {
                 AddonName = addonName,
@@ -878,7 +586,7 @@ function SC.LoadPanels()
     if guid then
         for k, panel in pairs(SC_GLOBAL.Characters[guid].Panels) do
             if not SC.Panels[panel.Name] then
-                SC.Panels[panel.Name] = Panel.New(panel.Name, panel.Anchor, panel.Width, panel.Height, panel.OffsetX, panel.OffsetY, panel.Sockets, panel.Display, panel.Specialization, panel.Orientation)
+                SC.Panels[panel.Name] = Panel.NewPanel(panel.Name, panel.Anchor, panel.Width, panel.Height, panel.OffsetX, panel.OffsetY, panel.Sockets, panel.Display, panel.Specialization, panel.Orientation)
                 for k, v in ipairs(panel.Sockets) do
                     SC.Panels[panel.Name]:CreateSocket(k, v.RangeOverlay, v.RangeOverlayRGBA, v.UsableOverlay, v.UsableOverlayRGBA)
                     if v.SpellId then
@@ -893,24 +601,9 @@ function SC.LoadPanels()
     end
 end
 
-function SC.FetchSpecData()
-    local ret = false
-    local currentSpec = GetSpecialization()
-    if currentSpec then
-        local id, name, description, icon, background, role, primaryStat = GetSpecializationInfo(currentSpec)
-        if id then
-            local role = GetSpecializationRoleByID(tonumber(id))
-            if role ~= nil then
-                ret = { ID = id, Name = name, Icon = icon }
-            end
-        end
-    end
-    return ret
-end
 
 function SC.OnEvent(self, event, ...)
     if event == "ADDON_LOADED" and select(1, ...):lower() == "simplecooldowns" then
-        SC.Print('loaded! To set up cooldowns head to the options interface menu > addons > Simple Cooldowns.')
         C_Timer.After(1, SC.Init)
 
     elseif event == "ACTIVE_TALENT_GROUP_CHANGED" then
@@ -919,9 +612,9 @@ function SC.OnEvent(self, event, ...)
         if guid and spec then
             for k, panel in pairs(SC.Panels) do
                 if panel.Specialization.ID == spec.ID then
-                    panel:Show()
+                    panel.Frame:Show()
                 else
-                    panel:Hide()
+                    panel.Frame:Hide()
                 end
             end
         end
