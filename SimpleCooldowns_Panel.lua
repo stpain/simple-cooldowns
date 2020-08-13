@@ -49,7 +49,8 @@ end
 -- @param rangeOverlayRGBA table value used to set the rangeOverlay colour
 -- @param usableOverlay boolean value used to show/hide the usable Overlay
 -- @param usableOverlayRGBA table value used to set the rusableOverlay colour
-function SC.Panel:CreateSocket(iter, rangeOverlay, rangeOverlayRGBA, usableOverlay, usableOverlayRGBA)
+-- @param visibility boolean value to determine when socket is shown
+function SC.Panel:CreateSocket(iter, rangeOverlay, rangeOverlayRGBA, usableOverlay, usableOverlayRGBA, visibility)
     local panel = self
     local s = CreateFrame('FRAME', tostring(self.Name..'_Socket'..iter), self.Frame)
     s:EnableMouse(true)
@@ -68,30 +69,34 @@ function SC.Panel:CreateSocket(iter, rangeOverlay, rangeOverlayRGBA, usableOverl
     s.Texture:SetAllPoints(s)
     s.Texture:SetTexture(132048)
 
-    s.UsableOverlayDisplay = usableOverlay
     s.UsableOverlay = s:CreateTexture("$parentUsableOverlay", "OVERLAY")
     s.UsableOverlay:SetPoint('TOPLEFT', 2, -2)
     s.UsableOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
     if not usableOverlayRGBA then
         usableOverlayRGBA = {r=0, g=0, b=0, a=0.8}
     end
+    s.UsableOverlayRGBA = usableOverlayRGBA
     s.UsableOverlay:SetColorTexture(usableOverlayRGBA.r, usableOverlayRGBA.g, usableOverlayRGBA.b, usableOverlayRGBA.a)
     s.UsableOverlay:Hide()
+    s.UsableOverlay.Display = usableOverlay
 
-    s.RangeOverlayDisplay = rangeOverlay
     s.RangeOverlay = s:CreateTexture("$parentRangeOverlay", "OVERLAY")
     s.RangeOverlay:SetPoint('TOPLEFT', 2, -2)
     s.RangeOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
     if not rangeOverlayRGBA then
         rangeOverlayRGBA = {r=1, g=0, b=0, a=0.6}
     end
+    s.RangeOverlayRGBA  = rangeOverlayRGBA
     s.RangeOverlay:SetColorTexture(rangeOverlayRGBA.r, rangeOverlayRGBA.g, rangeOverlayRGBA.b, rangeOverlayRGBA.a)
     s.RangeOverlay:Hide()
+    s.RangeOverlay.Display = rangeOverlay
 
     s.Cooldown = CreateFrame("Cooldown", "$parentCooldown", s, "CooldownFrameTemplate")
     s.Cooldown:SetAllPoints(s)
     s.Cooldown:SetFrameLevel(6)
     s.Cooldown:Show()
+
+    s.Visibility = tonumber(visibility)
 
     s.SpellId = nil
     s.SpellName = nil
@@ -221,4 +226,9 @@ function SC.Panel:SetSocketInfo(socket, info, id)
             end
         end
     end
+end
+
+
+function SC.Panel:SetSocketRangeOverlayRGBA(socket, r, g, b, a)
+    
 end
