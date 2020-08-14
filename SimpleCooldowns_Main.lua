@@ -221,10 +221,8 @@ SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnShow', 
                 local panel = _G['DropDownList'..dropDownListID..'Button'..buttonID].arg1
                 if panel and SC_GLOBAL.Characters[guid].Panels[panel.Name] then
                     if panel.Orientation == 'horizontal' then
-                        --self:SetValue(tonumber(SC_GLOBAL.Characters[guid].Panels[panel.Name].Height))
                         self:SetValue(tonumber(panel.Height))
                     elseif panel.Orientation == 'vertical' then
-                        --self:SetValue(tonumber(SC_GLOBAL.Characters[guid].Panels[panel.Name].Width))
                         self:SetValue(tonumber(panel.Width))
                     end
                 end
@@ -245,7 +243,7 @@ SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:SetScript('OnValueCh
             local panel = _G['DropDownList'..dropDownListID..'Button'..buttonID].arg1
             if panel then
                 for k, socket in ipairs(panel.Sockets) do
-                    socket:SetSize(self:GetValue(), self:GetValue())
+                    socket.Frame:SetSize(self:GetValue(), self:GetValue())
                 end
                 -- this will handle the size changes of sockets and panels
                 panel:SetOrientation(panel.Orientation)
@@ -271,9 +269,6 @@ function SC.GenerateContextMenu()
         { text = ' ', notCheckable=true, notClickable=true, },
         { text = 'Create panel', notCheckable=true, func=SC.ContextMenu_CreatePanel },
     }
-    -- local editPanel = {
-    --     { text='Select panel', isTitle=true, notCheckable=true, }
-    -- }
     SC.ContextMenu = {
         { text = 'Simple Cooldowns', isTitle=true, notCheckable=true, },
         { text = 'Toggle panel lock', notCheckable=true, func=SC.TogglePanelLock, keepShownOnClick=true },
@@ -284,7 +279,7 @@ function SC.GenerateContextMenu()
     if next(SC.Panels) then
         for k, panel in pairs(SC.Panels) do
             table.insert(SC.ContextMenu, {
-                text = k,
+                text = panel.Name,
                 arg1 = panel,
                 arg2 = panel.Name,
                 hasArrow=true,
@@ -366,13 +361,14 @@ function SC.GenerateContextMenu()
                     }},
                     { 
                         text = 'Delete', 
-                        arg1=panel, 
-                        notCheckable=true, 
-                        func=function(self) 
+                        arg1 = panel, 
+                        notCheckable = true, 
+                        func = function(self) 
                             panel.Frame:Hide() 
                             local guid = UnitGUID('player')
                             if guid then
-                                SC.Panels[k] = nil SC_GLOBAL.Characters[guid].Panels[k] = nil 
+                                SC.Panels[k] = nil 
+                                SC_GLOBAL.Characters[guid].Panels[k] = nil 
                             end
                         end, 
                     },
@@ -383,28 +379,34 @@ function SC.GenerateContextMenu()
                     { text = ' ', arg1=panel, arg2 = panel.Name, notCheckable=true, customFrame=SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, },
                     { 
                         text = 'Add socket', 
-                        arg1=panel, 
-                        isTitle=false, 
-                        notCheckable=true, 
+                        arg1 = panel, 
+                        isTitle = false, 
+                        notCheckable = true, 
                         func = function(self)
                             local guid = UnitGUID('player')
                             if guid and SC_GLOBAL then
-                                local id = GetTime()
+                                --local id = GetTime()
+                                local rangeOverlay = {
+                                    Display = true,
+                                    RGBA = {r=1, g=0, b=0, a=0.6},
+                                }
+                                local usableOverlay = {
+                                    Display = true,
+                                    RGBA = {r=0, g=0, b=0, a=0.8},
+                                }
                                 table.insert(SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets, { 
-                                    Id = id, 
+                                    -- Id = id, 
                                     Texture = 132048, 
                                     SpellId = nil, 
                                     SpellName = nil, 
                                     ItemId = nil, 
                                     ItemName = nil,
                                     Visibility = 1,
-                                    RangeOverlay = true,
-                                    RangeOverlayRGBA = {r=1, g=0, b=0, a=0.6},
-                                    UsableOverlay = true,
-                                    UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8}, 
+                                    RangeOverlay = rangeOverlay,
+                                    UsableOverlay = usableOverlay,
                                 })
                                 SC_GLOBAL.Characters[guid].Panels[panel.Name].Width = SC_GLOBAL.Characters[guid].Panels[panel.Name].Width + SC_GLOBAL.Characters[guid].Panels[panel.Name].Height
-                                panel:CreateSocket((#panel.Sockets + 1), true, {r=1, g=0, b=0, a=0.6}, true, {r=0, g=0, b=0, a=0.8}, 1)
+                                table.insert(panel.Sockets, panel:NewSocket((panel.SocketCount + 1), rangeOverlay, usableOverlay, 1))
                             end
                         end
                     }
@@ -413,7 +415,7 @@ function SC.GenerateContextMenu()
             for _, button in pairs(SC.ContextMenu) do
                 if button.arg2 == panel.Name then
                     for i, socket in ipairs(panel.Sockets) do
-                        --print(socket.SpellName, socket.Visibility, socket.RangeOverlay, socket.UsableOverlay)
+                        --socket:GetInfo()
                         local name = 'Empty'
                         if socket.SpellName then
                             name = socket.SpellName
@@ -428,7 +430,7 @@ function SC.GenerateContextMenu()
                             notCheckable = true,
                             hasArrow=true,
                             menuList = {
-                                { text = name, isTitle = true, notCheckable = true, icon = socket.Texture:GetTexture(), },
+                                { text = name, isTitle = true, notCheckable = true, icon = socket.Texture, },
                                 { text = 'Visibility', isTitle=false, notCheckable=true, hasArrow=true, menuList = {
                                     { 
                                         text = 'Always',
@@ -496,7 +498,6 @@ function SC.GenerateContextMenu()
                                     func = function()
                                         socket.RangeOverlay.Display = not socket.RangeOverlay.Display
                                         if guid and SC_GLOBAL then
-                                            socket.Visibility = 3
                                             SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets[i].RangeOverlay = socket.RangeOverlay.Display
                                         end
                                     end,
@@ -505,10 +506,10 @@ function SC.GenerateContextMenu()
                                     text = 'Range overlay colour    ',
                                     notCheckable = true,
                                     hasColorSwatch = true,
-                                    r = tonumber(socket.RangeOverlayRGBA.r), 
-                                    g = tonumber(socket.RangeOverlayRGBA.g), 
-                                    b = tonumber(socket.RangeOverlayRGBA.b),
-                                    opacity = tonumber(socket.RangeOverlayRGBA.a),
+                                    r = tonumber(socket.RangeOverlay.RGBA.r), 
+                                    g = tonumber(socket.RangeOverlay.RGBA.g), 
+                                    b = tonumber(socket.RangeOverlay.RGBA.b),
+                                    opacity = tonumber(socket.RangeOverlay.RGBA.a),
                                     hasOpacity = true,
                                     func = function(self)
                                         ColorPickerFrame:SetColorRGB(self.r, self.g, self.b) 
@@ -516,13 +517,11 @@ function SC.GenerateContextMenu()
                                         ColorPickerFrame.opacity = self.opacity
                                         ColorPickerFrame.func = function() 
                                             local r, g, b = ColorPickerFrame:GetColorRGB()
-                                            socket.RangeOverlayRGBA.r = r
-                                            socket.RangeOverlayRGBA.g = g
-                                            socket.RangeOverlayRGBA.b = b
+                                            socket:SetRangeOverlayRGB(panel, r, g, b)
                                         end
                                         ColorPickerFrame.opacityFunc = function() 
                                             local a = OpacitySliderFrame:GetValue()
-                                            socket.RangeOverlayRGBA.a = (1 - a)
+                                            socket:SetRangeOverlayOpacity(panel, (1 - a))
                                         end
                                         ColorPickerFrame.cancelFunc = function() end,
                                         ColorPickerFrame:Hide()
@@ -543,7 +542,6 @@ function SC.GenerateContextMenu()
                                     func = function()
                                         socket.UsableOverlay.Display = not socket.UsableOverlay.Display
                                         if guid and SC_GLOBAL then
-                                            socket.Visibility = 3
                                             SC_GLOBAL.Characters[guid].Panels[panel.Name].Sockets[i].UsableOverlay = socket.UsableOverlay.Display
                                         end
                                     end,
@@ -552,10 +550,10 @@ function SC.GenerateContextMenu()
                                     text = 'Usable overlay colour    ',
                                     notCheckable = true,
                                     hasColorSwatch = true,
-                                    r = tonumber(socket.UsableOverlayRGBA.r), 
-                                    g = tonumber(socket.UsableOverlayRGBA.g), 
-                                    b = tonumber(socket.UsableOverlayRGBA.b),
-                                    opacity = tonumber(socket.UsableOverlayRGBA.a),
+                                    r = tonumber(socket.UsableOverlay.RGBA.r), 
+                                    g = tonumber(socket.UsableOverlay.RGBA.g), 
+                                    b = tonumber(socket.UsableOverlay.RGBA.b),
+                                    opacity = tonumber(socket.UsableOverlay.RGBA.a),
                                     hasOpacity = true,
                                     func = function(self)
                                         ColorPickerFrame:SetColorRGB(self.r, self.g, self.b) 
@@ -563,13 +561,11 @@ function SC.GenerateContextMenu()
                                         ColorPickerFrame.opacity = self.opacity
                                         ColorPickerFrame.func = function() 
                                             local r, g, b = ColorPickerFrame:GetColorRGB()
-                                            socket.UsableOverlayRGBA.r = r
-                                            socket.UsableOverlayRGBA.g = g
-                                            socket.UsableOverlayRGBA.b = b
+                                            socket:SetUsableOverlayRGB(panel, r, g, b)
                                         end
                                         ColorPickerFrame.opacityFunc = function() 
                                             local a = OpacitySliderFrame:GetValue()
-                                            socket.UsableOverlayRGBA.a = (1 - a)
+                                            socket:SetUsableOverlayOpacity(panel, (1 - a))
                                         end
                                         ColorPickerFrame.cancelFunc = function() end,
                                         ColorPickerFrame:Hide()
@@ -603,16 +599,21 @@ function SC.ContextMenu_CreatePanel()
     local sockets = {}
     for i = 1, numSockets do
         table.insert(sockets, {
+            -- Id = i,
             Texture = 132048, 
             SpellId = nil, 
             SpellName = nil, 
             ItemId = nil, 
             ItemName = nil,
             Visibility = 1,
-            RangeOverlay = true,
-            RangeOverlayRGBA = {r=1, g=0, b=0, a=0.6},
-            UsableOverlay = true,
-            UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8},
+            RangeOverlay = {
+                Display = true,
+                RGBA = {r=1, g=0, b=0, a=0.6},
+            },
+            UsableOverlay = {
+                Display = true,
+                RGBA = {r=0, g=0, b=0, a=0.8},
+            },
         })
     end
     local name = SC.ContextMenu_CustomFrame_NewPanel_Editbox.editbox:GetText()
@@ -640,10 +641,11 @@ function SC.ContextMenu_CreatePanel()
         }
         SC.Panels[name] = Panel.NewPanel(name, 'CENTER', tonumber(iconSize * numSockets), tonumber(iconSize), 0, 0, sockets, true, spec, 'horizontal')
         for k, v in ipairs(sockets) do
-            SC.Panels[name]:CreateSocket(k, v.RangeOverlay, v.RangeOverlayRGBA, v.UsableOverlay, v.UsableOverlayRGBA, 1)
+            table.insert(SC.Panels[name].Sockets, SC.Panels[name]:NewSocket(k, v.RangeOverlay, v.UsableOverlay, 1))
         end
     end
     SC.ContextMenu_CustomFrame_NewPanel_Editbox.editbox:ClearFocus()
+    SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:Hide()
 end
 
 
@@ -681,10 +683,10 @@ function SC.Init()
                         OffsetX = 0.0,
                         OffsetY = 0.0,
                         Sockets = {
-                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = true, RangeOverlayRGBA = {r=1, g=0, b=0, a=0.6}, UsableOverlay = true, UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8} },
-                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = true, RangeOverlayRGBA = {r=1, g=0, b=0, a=0.6}, UsableOverlay = true, UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8} },
-                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = true, RangeOverlayRGBA = {r=1, g=0, b=0, a=0.6}, UsableOverlay = true, UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8} },
-                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = true, RangeOverlayRGBA = {r=1, g=0, b=0, a=0.6}, UsableOverlay = true, UsableOverlayRGBA = {r=0, g=0, b=0, a=0.8} },
+                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = { Display = true, RGBA = {r=1, g=0, b=0, a=0.6}, }, UsableOverlay = { Display = true, RGBA = {r=0, g=0, b=0, a=0.8}, }, },
+                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = { Display = true, RGBA = {r=1, g=0, b=0, a=0.6}, }, UsableOverlay = { Display = true, RGBA = {r=0, g=0, b=0, a=0.8}, }, },
+                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = { Display = true, RGBA = {r=1, g=0, b=0, a=0.6}, }, UsableOverlay = { Display = true, RGBA = {r=0, g=0, b=0, a=0.8}, }, },
+                            { Texture = 132048, SpellId = nil, SpellName = nil, ItemId = nil, ItemName = nil, Visibility = 1, RangeOverlay = { Display = true, RGBA = {r=1, g=0, b=0, a=0.6}, }, UsableOverlay = { Display = true, RGBA = {r=0, g=0, b=0, a=0.8}, }, },
                         },
                         Display = true,
                         Orientation = 'horizontal',
@@ -706,11 +708,11 @@ function SC.LoadPanels()
             if not SC.Panels[panel.Name] then
                 SC.Panels[panel.Name] = Panel.NewPanel(panel.Name, panel.Anchor, panel.Width, panel.Height, panel.OffsetX, panel.OffsetY, panel.Sockets, panel.Display, panel.Specialization, panel.Orientation)
                 for k, v in ipairs(panel.Sockets) do
-                    SC.Panels[panel.Name]:CreateSocket(k, v.RangeOverlay, v.RangeOverlayRGBA, v.UsableOverlay, v.UsableOverlayRGBA, v.Visibility)
+                    SC.Panels[panel.Name].Sockets[k] = SC.Panels[panel.Name]:NewSocket(k, v.RangeOverlay, v.UsableOverlay, v.Visibility)
                     if v.SpellId then
-                        SC.Panels[panel.Name]:SetSocketInfo(SC.Panels[panel.Name].Sockets[k], 'spell', v.SpellId)
+                        SC.Panels[panel.Name].Sockets[k]:SetInfo(panel, 'spell', v.SpellId)
                     elseif v.ItemId then
-                        SC.Panels[panel.Name]:SetSocketInfo(SC.Panels[panel.Name].Sockets[k], 'item', v.ItemId)
+                        SC.Panels[panel.Name].Sockets[k]:SetInfo(panel, 'item', v.ItemId)
                     end
                 end
                 SC.Panels[panel.Name]:SetOrientation(panel.Orientation)
@@ -741,21 +743,20 @@ end
 
 SC.SocketVisibility = {
     [1] = function(socket) -- always show
-        socket:Show()
+        socket.Frame:Show()
     end,
     [2] = function(socket, duration) -- show on cooldown
         if duration > 0 then
-            socket:Show()
+            socket.Frame:Show()
         else
-            socket:Hide()
---            print(socket.SpellName, socket.Visibility, duration)
+            socket.Frame:Hide()
         end
     end,
     [3] = function(socket, duration) -- show off cooldown
         if duration > 0 then
-            socket:Hide()
+            socket.Frame:Hide()
         else
-            socket:Show()
+            socket.Frame:Show()
         end
     end,
 }
@@ -766,26 +767,26 @@ function SC.OnUpdate()
             if socket.SpellName then
                 local inRange = IsSpellInRange(socket.SpellName, "target")
                 if tonumber(inRange) == 0 and socket.RangeOverlay.Display == true then
-                    socket.RangeOverlay:SetColorTexture(socket.RangeOverlayRGBA.r, socket.RangeOverlayRGBA.g, socket.RangeOverlayRGBA.b, socket.RangeOverlayRGBA.a)
-                    socket.RangeOverlay:Show()
+                    socket.Frame.RangeOverlay:SetColorTexture(socket.RangeOverlay.RGBA.r, socket.RangeOverlay.RGBA.g, socket.RangeOverlay.RGBA.b, socket.RangeOverlay.RGBA.a)
+                    socket.Frame.RangeOverlay:Show()
                 else
-                    socket.RangeOverlay:Hide()
+                    socket.Frame.RangeOverlay:Hide()
                     local usable, noMana = IsUsableSpell(socket.SpellName)
                     if usable == false and socket.UsableOverlay.Display == true then
-                        socket.UsableOverlay:Show()
+                        socket.Frame.UsableOverlay:Show()
                     elseif usable == true then
-                        socket.UsableOverlay:Hide()
+                        socket.Frame.UsableOverlay:Hide()
                     end
                 end
             end
             if socket.SpellId then
                 local spellStart, spellDuration, enabled, modRate = GetSpellCooldown(socket.SpellId)
-                socket.Cooldown:SetCooldown(spellStart, spellDuration)
+                socket.Frame.Cooldown:SetCooldown(spellStart, spellDuration)
                 SC.SocketVisibility[tonumber(socket.Visibility)](socket, spellDuration)
             end
             if socket.ItemId then
                 local itemStart, itemDuration, itemEnable = GetItemCooldown(socket.ItemId)
-                socket.Cooldown:SetCooldown(itemStart, itemDuration)
+                socket.Frame.Cooldown:SetCooldown(itemStart, itemDuration)
                 if itemDuration > 0 then
                     SC.SocketVisibility[socket.Visibility](socket, true)
                 elseif itemDuration < 0 then
