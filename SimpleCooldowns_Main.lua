@@ -451,6 +451,9 @@ function SC.GenerateContextMenu()
                                     },
                                     { 
                                         text = 'On cooldown', 
+                                        tooltipText = 'Show socket when spell or item is on cooldown',
+                                        tooltipTitle = 'Visibility',
+                                        tooltipOnButton = true,
                                         checked = function()
                                             if socket.Visibility == 2 then
                                                 return true
@@ -468,6 +471,9 @@ function SC.GenerateContextMenu()
                                     },
                                     { 
                                         text = 'Off cooldown', 
+                                        tooltipText = 'Show socket when spell or item is off cooldown',
+                                        tooltipTitle = 'Visibility',
+                                        tooltipOnButton = true,
                                         checked = function()
                                             if socket.Visibility == 3 then
                                                 return true
@@ -485,9 +491,13 @@ function SC.GenerateContextMenu()
                                     },
                                 }},
                                 { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
+                                { text = 'Overlays', isTitle=true, notCheckable=true, notClickable=true },
                                 {
-                                    text = 'Range overlay',
+                                    text = 'Range',
                                     isNotRadio = true,
+                                    tooltipText = 'Show a coloured overlay when target is out of range',
+                                    tooltipTitle = 'Range overlay',
+                                    tooltipOnButton = true,
                                     keepShownOnClick = true,
                                     checked = function()
                                         local guid = UnitGUID('player')
@@ -503,7 +513,7 @@ function SC.GenerateContextMenu()
                                     end,
                                 },
                                 {
-                                    text = 'Range overlay colour    ',
+                                    text = 'Range colour    ',
                                     notCheckable = true,
                                     hasColorSwatch = true,
                                     r = tonumber(socket.RangeOverlay.RGBA.r), 
@@ -528,11 +538,14 @@ function SC.GenerateContextMenu()
                                         ColorPickerFrame:Show()
                                     end,
                                 },
-                                { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
+                                --{ text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
                                 {
-                                    text = 'Usbale overlay',
+                                    text = 'Usable',
                                     isNotRadio = true,
                                     keepShownOnClick = true,
+                                    tooltipText = 'Show a coloured overlay when spell or item is |cffffffffnot|r usable',
+                                    tooltipTitle = 'Usable overlay',
+                                    tooltipOnButton = true,
                                     checked = function()
                                         local guid = UnitGUID('player')
                                         if guid and SC_GLOBAL then
@@ -547,7 +560,7 @@ function SC.GenerateContextMenu()
                                     end,
                                 },
                                 {
-                                    text = 'Usable overlay colour    ',
+                                    text = 'Usable colour    ',
                                     notCheckable = true,
                                     hasColorSwatch = true,
                                     r = tonumber(socket.UsableOverlay.RGBA.r), 
@@ -645,7 +658,7 @@ function SC.ContextMenu_CreatePanel()
         end
     end
     SC.ContextMenu_CustomFrame_NewPanel_Editbox.editbox:ClearFocus()
-    SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:Hide()
+    --SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider.slider:Hide()
 end
 
 
