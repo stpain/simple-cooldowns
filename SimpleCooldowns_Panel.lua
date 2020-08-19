@@ -84,7 +84,8 @@ end
 -- @param visibility boolean value to determine when socket is shown
 function SC.Panel:NewSocket(id, rangeOverlay, usableOverlay, visibility)
     local panel = self
-    panel.SocketCount = panel.SocketCount + 1
+    panel.SocketCount = panel.SocketCount + 1 -- this is incremented during the client up time and is used to keep socket id's unique
+    
     local socket = {}
     socket.Id = id
     socket.Frame = CreateFrame('FRAME', tostring(panel.Name..'_Socket'..panel.SocketCount), panel.Frame)
@@ -93,12 +94,12 @@ function SC.Panel:NewSocket(id, rangeOverlay, usableOverlay, visibility)
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
         edgeSize = 16,
     })
-    if panel.Height > panel.Width then
+    if panel.Height > panel.Width then -- orientation is vertical, could just use panel.Orientation ?
         socket.Frame:SetSize(panel.Width, panel.Width)
     else
         socket.Frame:SetSize(panel.Height, panel.Height)
     end
-    local x = #panel.Sockets
+    local x = #panel.Sockets -- needs to be assigned to local variable else table length is wrong
     socket.Frame:SetPoint('BOTTOMLEFT', x * panel.Height, 0)
 
     socket.Texture = 132048
@@ -106,27 +107,27 @@ function SC.Panel:NewSocket(id, rangeOverlay, usableOverlay, visibility)
     socket.Frame.Texture:SetAllPoints(socket.Frame)
     socket.Frame.Texture:SetTexture(socket.Texture)
 
-    socket.Frame.UsableOverlay = socket.Frame:CreateTexture("$parentUsableOverlay", "OVERLAY")
-    socket.Frame.UsableOverlay:SetPoint('TOPLEFT', 2, -2)
-    socket.Frame.UsableOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
     if not usableOverlay.RGBA then
         usableOverlay.RGBA = {r=0, g=0, b=0, a=0.8}
     end
     socket.UsableOverlay = {}
     socket.UsableOverlay.RGBA = usableOverlay.RGBA
     socket.UsableOverlay.Display = usableOverlay.Display
+    socket.Frame.UsableOverlay = socket.Frame:CreateTexture("$parentUsableOverlay", "OVERLAY")
+    socket.Frame.UsableOverlay:SetPoint('TOPLEFT', 2, -2)
+    socket.Frame.UsableOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
     socket.Frame.UsableOverlay:SetColorTexture(usableOverlay.RGBA.r, usableOverlay.RGBA.g, usableOverlay.RGBA.b, usableOverlay.RGBA.a)
     socket.Frame.UsableOverlay:Hide()
 
-    socket.Frame.RangeOverlay = socket.Frame:CreateTexture("$parentRangeOverlay", "OVERLAY")
-    socket.Frame.RangeOverlay:SetPoint('TOPLEFT', 2, -2)
-    socket.Frame.RangeOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
     if not rangeOverlay.RGBA then
         rangeOverlay.RGBA = {r=1, g=0, b=0, a=0.6}
     end
     socket.RangeOverlay = {}
     socket.RangeOverlay.RGBA = rangeOverlay.RGBA
     socket.RangeOverlay.Display = rangeOverlay.Display
+    socket.Frame.RangeOverlay = socket.Frame:CreateTexture("$parentRangeOverlay", "OVERLAY")
+    socket.Frame.RangeOverlay:SetPoint('TOPLEFT', 2, -2)
+    socket.Frame.RangeOverlay:SetPoint('BOTTOMRIGHT', -2, 2)
     socket.Frame.RangeOverlay:SetColorTexture(rangeOverlay.RGBA.r, rangeOverlay.RGBA.g, rangeOverlay.RGBA.b, rangeOverlay.RGBA.a)
     socket.Frame.RangeOverlay:Hide()
 
@@ -145,7 +146,8 @@ function SC.Panel:NewSocket(id, rangeOverlay, usableOverlay, visibility)
     socket.Frame:SetScript('OnMouseUp', function(self, button)
         if button == 'RightButton' and IsShiftKeyDown() then
             SC.GenerateContextMenu()
-            EasyMenu(SC.ContextMenu, SC.ContextMenu_DropDown, "cursor", 0 , 100, "MENU")
+            local h = #SC.ContextMenu
+            EasyMenu(SC.ContextMenu, SC.ContextMenu_DropDown, "cursor", 0 , h * 18, "MENU")
         end
     end)
     socket.Frame:SetScript('OnReceiveDrag', function(self)

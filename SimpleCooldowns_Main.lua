@@ -254,9 +254,10 @@ end)
 
 
 ----------------------------------------------------------------------------------------------------
--- context menu
+-- context menu, this is a big table creation function that adds all panel options and then passes it to EasyMenu
 ----------------------------------------------------------------------------------------------------
 function SC.GenerateContextMenu()
+    --this is the menu with new panel options
     local newPanel = {
         { text = 'Create panel', isTitle=true, notCheckable=true, },
         { text = 'Number of sockets', notCheckable=true, notClickable=true, },
@@ -269,6 +270,7 @@ function SC.GenerateContextMenu()
         { text = ' ', notCheckable=true, notClickable=true, },
         { text = 'Create panel', notCheckable=true, func=SC.ContextMenu_CreatePanel },
     }
+    --start the main menu table
     SC.ContextMenu = {
         { text = 'Simple Cooldowns', isTitle=true, notCheckable=true, },
         { text = 'Toggle panel lock', notCheckable=true, func=SC.TogglePanelLock, keepShownOnClick=true },
@@ -276,6 +278,7 @@ function SC.GenerateContextMenu()
         { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
         { text = 'Edit Panel', isTitle=true, notCheckable=true, },
     }
+    --loop panels and add panel button
     if next(SC.Panels) then
         for k, panel in pairs(SC.Panels) do
             table.insert(SC.ContextMenu, {
@@ -284,6 +287,7 @@ function SC.GenerateContextMenu()
                 arg2 = panel.Name,
                 hasArrow=true,
                 notCheckable=true,
+                --start the panel options table, this is what pops out when hovering on a panel
                 menuList = {
                     { text = panel.Name, isTitle=true, notCheckable=true, },
                     { text = panel.Specialization.Name, icon = panel.Specialization.Icon, notClickable=true, notCheckable=true, },
@@ -373,7 +377,7 @@ function SC.GenerateContextMenu()
                         end, 
                     },
                     { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
-                    { text = 'Sockets', arg1='sockets-header', notCheckable=true, isTitle=true,},
+                    { text = 'Sockets', arg1='sockets-header', notCheckable=true, isTitle=true,}, -- this is the socket header, use this table index to set insert point for socket data (see below)
                     { text = SC.ContextMenu_Separator, notCheckable=true, notClickable=true },
                     { text = 'Socket size', isTitle=true, notClickable=true, notCheckable=true, },
                     { text = ' ', arg1=panel, arg2 = panel.Name, notCheckable=true, customFrame=SC.ContextMenu_CustomFrame_EditPanel_IconSize_Slider, },
@@ -412,6 +416,7 @@ function SC.GenerateContextMenu()
                     }
                 }
             })
+            -- now loop the table to add socket info to panels, this is inserted after the socket header
             for _, button in pairs(SC.ContextMenu) do
                 if button.arg2 == panel.Name then
                     for i, socket in ipairs(panel.Sockets) do
