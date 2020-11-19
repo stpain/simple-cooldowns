@@ -717,6 +717,15 @@ function SC.Init()
         SC.LoadPanels()
         SC.CreateMinimapButton()
     end
+
+    -- for i = 1, 12 do
+    --     _G['SpellButton'..i]:HookScript('OnClick', function(self, button)
+    --         local spell = _G['SpellButton'..i..'SpellName']:GetText()
+    --         print(spell)
+    --         name, icon, count, debuffType, duration, expirationTime, unitCaster, canStealOrPurge, nameplateShowPersonal, spellId = AuraUtil.FindAuraByName(spell, 'player', 'HELPFUL')
+    --         print(duration, spellId, icon)
+    --     end)
+    -- end
 end
 
 function SC.LoadPanels()

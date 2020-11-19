@@ -7,9 +7,9 @@ SC.Socket = {}
 SC.Socket.__index = SC.Socket
 
 --- updates the socket spell or item information and writes data to save var
--- @param panel frame object to use for saved var lookup
--- @param info string either spell or item
--- @param id number value for the spell or item ID
+-- @param panel, frame object to use for saved var lookup
+-- @param info, string either spell or item
+-- @param id, number value for the spell or item ID
 function SC.Socket:SetInfo(panel, info, id)
     local guid = UnitGUID('player')
     if guid and SC_GLOBAL then

@@ -78,17 +78,17 @@ function SC.Panel:SetOrientation(orientation)
 end
 
 --- creates a new socket frame
--- @param id number value for this socket within the panel sockets table, also used to positioning
--- @param rangeOverlay table value used to set the rangeOverlay
--- @param usableOverlay table value used to set the usable Overlay
--- @param visibility boolean value to determine when socket is shown
+-- @param id, number value for this socket within the panel sockets table, also used to positioning
+-- @param rangeOverlay, table value used to set the rangeOverlay
+-- @param usableOverlay, table value used to set the usable Overlay
+-- @param visibility, boolean value to determine when socket is shown
 function SC.Panel:NewSocket(id, rangeOverlay, usableOverlay, visibility)
     local panel = self
     panel.SocketCount = panel.SocketCount + 1 -- this is incremented during the client up time and is used to keep socket id's unique
     
     local socket = {}
     socket.Id = id
-    socket.Frame = CreateFrame('FRAME', tostring(panel.Name..'_Socket'..panel.SocketCount), panel.Frame)
+    socket.Frame = CreateFrame('FRAME', tostring(panel.Name..'_Socket'..panel.SocketCount), panel.Frame, BackdropTemplateMixin and "BackdropTemplate")
     socket.Frame:EnableMouse(true)
     socket.Frame:SetBackdrop({
         edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
@@ -177,7 +177,7 @@ function SC.Panel:NewSocket(id, rangeOverlay, usableOverlay, visibility)
         GameTooltip:AddDoubleLine('Panel', tostring('|cffffffff'..panel.Name))
         GameTooltip:AddDoubleLine('Spec', tostring('|cffffffff'..panel.Specialization.Name))
         --GameTooltip:AddDoubleLine('Socket', tostring('|cffffffff'..socket.Id))
-        GameTooltip:AddLine('|cffffffffShift click for menu')
+        GameTooltip:AddLine('|cffffffffShift|r+ right click for menu')
         GameTooltip:Show()
     end)
 
